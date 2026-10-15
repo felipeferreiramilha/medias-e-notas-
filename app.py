@@ -1,3 +1,6 @@
+streamlit
+pandas
+reportlab
 import streamlit as st
 import pandas as pd
 from datetime import date
@@ -16,37 +19,27 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📚 Sistema de Gestão Escolar - Notas, Chamada e Boletim PDF (2027)")
-st.markdown("Gerencie turmas, controle frequências para o ano letivo de 2027, gere boletins em PDF e autorize o acesso de professores.")
+st.title("📚 Sistema de Gestão Escolar - 2027")
+st.markdown("Gerenciamento escolar completo: Cadastro de turmas, alunos, professores por disciplina, controle de chamadas, notas e boletins em PDF.")
 
-# --- INICIALIZAÇÃO DE DADOS NA SESSÃO (SESSION STATE) ---
-if "dados_escolares" not in st.session_state:
-    st.session_state.dados_escolares = [
-        {"Turma": "1º Ano A", "Disciplina": "Física", "Professor": "Prof. Carlos", "Nome": "Ana Silva", "Nota1": 8.0, "Nota2": 7.5, "Nota3": 9.0},
-        {"Turma": "1º Ano A", "Disciplina": "Física", "Professor": "Prof. Carlos", "Nome": "Carlos Souza", "Nota1": 5.0, "Nota2": 6.0, "Nota3": 4.5},
-        {"Turma": "2º Ano B", "Disciplina": "Matemática", "Professor": "Profª Maria", "Nome": "Mariana Lima", "Nota1": 9.5, "Nota2": 8.0, "Nota3": 9.0},
-    ]
-
-if "registro_chamada" not in st.session_state:
-    st.session_state.registro_chamada = [
-        {"Data": "2027-02-10", "Turma": "1º Ano A", "Nome": "Ana Silva", "Status": "Presente"},
-        {"Data": "2027-02-10", "Turma": "1º Ano A", "Nome": "Carlos Souza", "Status": "Falta"},
-    ]
-
+# --- INICIALIZAÇÃO DE DADOS ZERADOS NA SESSÃO ---
 if "turmas_cadastradas" not in st.session_state:
-    st.session_state.turmas_cadastradas = ["1º Ano A", "1º Ano B", "2º Ano A", "2º Ano B", "3º Ano A"]
+    st.session_state.turmas_cadastradas = []
 
 if "disciplinas_cadastradas" not in st.session_state:
-    st.session_state.disciplinas_cadastradas = ["Física", "Matemática", "Química", "Biologia", "Português", "História"]
+    st.session_state.disciplinas_cadastradas = []
 
-# Professores com status de autorização ("Autorizado" ou "Pendente")
 if "professores_cadastrados" not in st.session_state:
-    st.session_state.professores_cadastrados = [
-        {"Nome": "Prof. Carlos", "Status": "Autorizado"},
-        {"Nome": "Profª Maria", "Status": "Autorizado"},
-        {"Nome": "Prof. João", "Status": "Autorizado"},
-        {"Nome": "Profª Ana", "Status": "Autorizado"}
-    ]
+    st.session_state.professores_cadastrados = []  # Estrutura: {"Nome": ..., "Disciplina": ..., "Status": ...}
+
+if "alunos_cadastrados" not in st.session_state:
+    st.session_state.alunos_cadastrados = []  # Estrutura: {"Nome": ..., "Turma": ...}
+
+if "dados_escolares" not in st.session_state:
+    st.session_state.dados_escolares = []  # Estrutura: {"Turma": ..., "Disciplina": ..., "Professor": ..., "Nome": ..., "Nota1": ..., "Nota2": ..., "Nota3": ...}
+
+if "registro_chamada" not in st.session_state:
+    st.session_state.registro_chamada = []  # Estrutura: {"Data": ..., "Aula": ..., "Turma": ..., "Disciplina": ..., "Nome": ..., "Status": ...}
 
 
 # --- FUNÇÃO PARA GERAR BOLETIM EM PDF ---
@@ -107,115 +100,301 @@ def gerar_boletim_pdf(nome_aluno, turma_aluno, df_aluno_notas, faltas_aluno):
 
 
 # --- ABAS DE NAVEGAÇÃO DO SISTEMA ---
-aba1, aba2, aba3, aba4, aba5, aba6 = st.tabs([
-    "📝 Lançar Notas", 
-    "📅 Chamada (Ano 2027)", 
-    "📄 Boletim & Relatórios PDF", 
-    "✏️ Editar / Excluir Registros", 
-    "👨‍🏫 Cadastro de Professor",
-    "⚙️ Gerenciamento Geral"
+aba1, aba2, aba3, aba4, aba5, aba6, aba7 = st.tabs([
+    "⚙️ Configurações / Cadastros", 
+    "👨‍🏫 Solicitação Professor", 
+    "📝 Matrícula de Alunos",
+    "📊 Lançamento de Notas (3 Notas)", 
+    "📅 Chamada & Frequência", 
+    "📄 Relatórios & Boletim PDF",
+    "🔒 Acesso Restrito do Professor"
 ])
 
 
-# --- ABA 1: LANÇAR NOTAS E ALUNOS ---
+# --- ABA 1: CONFIGURAÇÕES / CADASTROS GERAIS ---
 with aba1:
-    st.header("Cadastro de Alunos e Lançamento de Notas")
-    
-    profs_autorizados = [p["Nome"] for p in st.session_state.professores_cadastrados if p["Status"] == "Autorizado"]
+    st.header("⚙️ Cadastro de Turmas e Disciplinas")
+    st.markdown("Cadastre as turmas (séries) e as disciplinas iniciais do ano letivo de 2027.")
 
-    if len(st.session_state.turmas_cadastradas) == 0 or len(st.session_state.disciplinas_cadastradas) == 0:
-        st.warning("⚠️ Cadastre ao menos uma Turma e uma Disciplina nas Configurações.")
-    elif len(profs_autorizados) == 0:
-        st.warning("⚠️ Não há professores autorizados no momento. Vá até a aba 'Cadastro de Professor' para solicitar ou autorizar um.")
-    else:
-        with st.form("form_aluno", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            with col1:
-                turma_escolhida = st.selectbox("Selecione a Turma", st.session_state.turmas_cadastradas)
-                disciplina_escolhida = st.selectbox("Selecione a Disciplina", st.session_state.disciplinas_cadastradas)
-                professor_escolhido = st.selectbox("Professor Responsável (Autorizado)", profs_autorizados)
-                nome_aluno = st.text_input("Nome Completo do Aluno")
-            with col2:
-                nota_1 = st.number_input("Nota 1 (0 a 10)", min_value=0.0, max_value=10.0, step=0.1)
-                nota_2 = st.number_input("Nota 2 (0 a 10)", min_value=0.0, max_value=10.0, step=0.1)
-                nota_3 = st.number_input("Nota 3 (0 a 10)", min_value=0.0, max_value=10.0, step=0.1)
-                
-            salvar_btn = st.form_submit_button("Salvar Aluno e Notas")
-            
-            if salvar_btn:
-                if nome_aluno.strip() != "":
-                    st.session_state.dados_escolares.append({
-                        "Turma": turma_escolhida,
-                        "Disciplina": disciplina_escolhida,
-                        "Professor": professor_escolhido,
-                        "Nome": nome_aluno.strip(),
-                        "Nota1": nota_1,
-                        "Nota2": nota_2,
-                        "Nota3": nota_3
-                    })
-                    st.success(f"Notas do(a) aluno(a) {nome_aluno.strip()} salvas com sucesso!")
-                else:
-                    st.error("Por favor, digite o nome do aluno.")
+    col_cfg1, col_cfg2 = st.columns(2)
 
+    with col_cfg1:
+        st.subheader("🏫 Turmas / Séries")
+        nova_turma = st.text_input("Nome da Turma (ex: 1º Ano A, 6º Ano B)")
+        if st.button("Adicionar Turma"):
+            if nova_turma.strip() and nova_turma.strip() not in st.session_state.turmas_cadastradas:
+                st.session_state.turmas_cadastradas.append(nova_turma.strip())
+                st.success(f"Turma '{nova_turma.strip()}' cadastrada!")
+                st.rerun()
+            else:
+                st.error("Digite um nome válido ou uma turma já existente.")
 
-# --- ABA 2: DIÁRIO DE FREQUÊNCIA / CHAMADA 2027 ---
-with aba2:
-    st.header("📅 Diário de Classe - Chamada e Frequência (2027)")
-    
-    if len(st.session_state.turmas_cadastradas) > 0:
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            turma_chamada = st.selectbox("Selecione a Turma para Fazer a Chamada:", st.session_state.turmas_cadastradas, key="chamada_turma")
-        with col_c2:
-            data_chamada = st.date_input("Data da Aula (Ano 2027):", value=date(2027, 2, 1))
-
-        alunos_na_turma = sorted(list(set([a["Nome"] for a in st.session_state.dados_escolares if a["Turma"] == turma_chamada])))
-
-        if len(alunos_na_turma) > 0:
-            with st.form("form_chamada"):
-                status_alunos = {}
-                for aluno in alunos_na_turma:
-                    col_a1, col_a2 = st.columns([3, 2])
-                    with col_a1:
-                        st.write(f"👤 **{aluno}**")
-                    with col_a2:
-                        status_alunos[aluno] = st.radio(
-                            "Presença", 
-                            ["Presente", "Falta"], 
-                            key=f"status_{aluno}_{data_chamada}", 
-                            horizontal=True
-                        )
-                
-                salvar_chamada_btn = st.form_submit_button("💾 Salvar Chamada do Dia")
-                if salvar_chamada_btn:
-                    for aluno, status in status_alunos.items():
-                        st.session_state.registro_chamada.append({
-                            "Data": str(data_chamada),
-                            "Turma": turma_chamada,
-                            "Nome": aluno,
-                            "Status": status
-                        })
-                    st.success("Chamada registrada com sucesso para o ano de 2027!")
+        st.write("**Turmas Ativas:**")
+        if len(st.session_state.turmas_cadastradas) > 0:
+            for t in list(st.session_state.turmas_cadastradas):
+                c_t1, c_t2 = st.columns([3, 1])
+                c_t1.write(f"- 📌 {t}")
+                if c_t2.button("Remover", key=f"del_turma_{t}"):
+                    st.session_state.turmas_cadastradas.remove(t)
+                    st.rerun()
         else:
-            st.info("Nenhum aluno cadastrado nesta turma.")
+            st.info("Nenhuma turma cadastrada.")
+
+    with col_cfg2:
+        st.subheader("📚 Disciplinas")
+        nova_disc = st.text_input("Nome da Disciplina (ex: Física, Matemática)")
+        if st.button("Adicionar Disciplina"):
+            if nova_disc.strip() and nova_disc.strip() not in st.session_state.disciplinas_cadastradas:
+                st.session_state.disciplinas_cadastradas.append(nova_disc.strip())
+                st.success(f"Disciplina '{nova_disc.strip()}' cadastrada!")
+                st.rerun()
+            else:
+                st.error("Digite um nome válido ou disciplina já existente.")
+
+        st.write("**Disciplinas Ativas:**")
+        if len(st.session_state.disciplinas_cadastradas) > 0:
+            for d in list(st.session_state.disciplinas_cadastradas):
+                c_d1, c_d2 = st.columns([3, 1])
+                c_d1.write(f"- 📖 {d}")
+                if c_d2.button("Remover", key=f"del_disc_{d}"):
+                    st.session_state.disciplinas_cadastradas.remove(d)
+                    st.rerun()
+        else:
+            st.info("Nenhuma disciplina cadastrada.")
+
+    st.markdown("---")
+    st.subheader("⚠️ Reset Total do Sistema")
+    if st.button("🗑️ Apagar Todos os Dados", type="primary"):
+        st.session_state.turmas_cadastradas = []
+        st.session_state.disciplinas_cadastradas = []
+        st.session_state.professores_cadastrados = []
+        st.session_state.alunos_cadastrados = []
+        st.session_state.dados_escolares = []
+        st.session_state.registro_chamada = []
+        st.success("Sistema limpo com sucesso!")
+        st.rerun()
+
+
+# --- ABA 2: SOLICITAÇÃO DE CADASTRO DE PROFESSOR ---
+with aba2:
+    st.header("👨‍🏫 Cadastro e Vinculação de Professor por Disciplina")
+    st.markdown("O professor se cadastra informando seu nome e qual disciplina irá lecionar. O acesso só é liberado após a autorização.")
+
+    if len(st.session_state.disciplinas_cadastradas) == 0:
+        st.warning("⚠️ Cadastre ao menos uma disciplina na aba 'Configurações' primeiro.")
+    else:
+        with st.form("form_prof"):
+            nome_prof = st.text_input("Nome Completo do Professor (ex: Prof. Carlos)")
+            disc_prof = st.selectbox("Disciplina Lecionada", st.session_state.disciplinas_cadastradas)
+            solicitar_prof = st.form_submit_button("Solicitar Acesso")
+
+            if solicitar_prof:
+                if nome_prof.strip():
+                    # Verificar se já existe
+                    ja_existe = any(p["Nome"] == nome_prof.strip() and p["Disciplina"] == disc_prof for p in st.session_state.professores_cadastrados)
+                    if not ja_existe:
+                        st.session_state.professores_cadastrados.append({
+                            "Nome": nome_prof.strip(),
+                            "Disciplina": disc_prof,
+                            "Status": "Pendente"
+                        })
+                        st.success(f"Solicitação enviada para {nome_prof.strip()} na disciplina {disc_prof}! Aguarde liberação.")
+                    else:
+                        st.error("Este professor já está cadastrado para esta disciplina.")
+                else:
+                    st.error("Digite o nome do professor.")
+
+    st.markdown("---")
+    st.subheader("🛡️ Painel de Autorização da Coordenação")
+    pendentes = [p for p in st.session_state.professores_cadastrados if p["Status"] == "Pendente"]
+
+    if len(pendentes) > 0:
+        for p in pendentes:
+            col_p1, col_p2, col_p3 = st.columns([3, 1, 1])
+            col_p1.write(f"⏳ **{p['Nome']}** - Disciplina: *{p['Disciplina']}*")
+            if col_p2.button("✅ Autorizar", key=f"auth_{p['Nome']}_{p['Disciplina']}"):
+                for item in st.session_state.professores_cadastrados:
+                    if item["Nome"] == p["Nome"] and item["Disciplina"] == p["Disciplina"]:
+                        item["Status"] = "Autorizado"
+                st.success(f"Professor {p['Nome']} autorizado!")
+                st.rerun()
+            if col_p3.button("❌ Rejeitar", key=f"rej_{p['Nome']}_{p['Disciplina']}"):
+                st.session_state.professores_cadastrados = [
+                    item for item in st.session_state.professores_cadastrados 
+                    if not (item["Nome"] == p["Nome"] and item["Disciplina"] == p["Disciplina"])
+                ]
+                st.success("Rejeitado.")
+                st.rerun()
+    else:
+        st.info("Nenhum professor aguardando autorização.")
+
+    st.write("### 👥 Todos os Professores Registrados:")
+    for p in st.session_state.professores_cadastrados:
+        badge = "🟢 Autorizado" if p["Status"] == "Autorizado" else "🟡 Pendente"
+        col_lg1, col_lg2 = st.columns([3, 1])
+        col_lg1.write(f"- {p['Nome']} ({p['Disciplina']}) - {badge}")
+        if col_lg2.button("Remover", key=f"del_p_{p['Nome']}_{p['Disciplina']}"):
+            st.session_state.professores_cadastrados = [
+                item for item in st.session_state.professores_cadastrados 
+                if not (item["Nome"] == p["Nome"] and item["Disciplina"] == p["Disciplina"])
+            ]
+            st.rerun()
+
+
+# --- ABA 3: MATRÍCULA DE ALUNOS ---
+with aba3:
+    st.header("📝 Cadastro / Matrícula de Alunos")
+    st.markdown("Cadastre os alunos e vincule-os diretamente às turmas cadastradas.")
+
+    if len(st.session_state.turmas_cadastradas) == 0:
+        st.warning("⚠️ Cadastre ao menos uma turma na aba 'Configurações' antes de matricular alunos.")
+    else:
+        with st.form("form_matricula", clear_on_submit=True):
+            turma_aluno = st.selectbox("Selecione a Turma", st.session_state.turmas_cadastradas)
+            nome_novo_aluno = st.text_input("Nome Completo do Aluno")
+            cadastrar_aluno_btn = st.form_submit_button("Matricular Aluno")
+
+            if cadastrar_aluno_btn:
+                if nome_novo_aluno.strip():
+                    st.session_state.alunos_cadastrados.append({
+                        "Turma": turma_aluno,
+                        "Nome": nome_novo_aluno.strip()
+                    })
+                    st.success(f"Aluno(a) {nome_novo_aluno.strip()} matriculado(a) na turma {turma_aluno}!")
+                else:
+                    st.error("Digite o nome do aluno.")
+
+    st.markdown("---")
+    st.subheader("📋 Lista Geral de Alunos Matriculados")
+    if len(st.session_state.alunos_cadastrados) > 0:
+        df_alunos_geral = pd.DataFrame(st.session_state.alunos_cadastrados)
+        st.dataframe(df_alunos_geral, use_container_width=True)
+    else:
+        st.info("Nenhum aluno matriculado ainda.")
+
+
+# --- ABA 4: LANÇAMENTO DE NOTAS (3 NOTAS) ---
+with aba4:
+    st.header("📊 Lançamento de Notas (3 Avaliações)")
+    st.markdown("Selecione a Turma, a Disciplina, o Professor Autorizado e lance as três notas do aluno.")
+
+    profs_autorizados = [p for p in st.session_state.professores_cadastrados if p["Status"] == "Autorizado"]
+
+    if len(st.session_state.turmas_cadastradas) == 0 or len(st.session_state.alunos_cadastrados) == 0 or len(profs_autorizados) == 0:
+        st.warning("⚠️ Certifique-se de que existem Turmas, Alunos matriculados e Professores Autorizados.")
+    else:
+        with st.form("form_notas", clear_on_submit=True):
+            col_n1, col_n2 = st.columns(2)
+            with col_n1:
+                t_escolhida = st.selectbox("Turma", st.session_state.turmas_cadastradas)
+                # Filtrar alunos da turma escolhida
+                alunos_da_turma = [a["Nome"] for a in st.session_state.alunos_cadastrados if a["Turma"] == t_escolhida]
+                if len(alunos_da_turma) > 0:
+                    aluno_escolhido = st.selectbox("Aluno", alunos_da_turma)
+                else:
+                    aluno_escolhido = None
+                    st.warning("Não há alunos nesta turma.")
+
+                disc_escolhida = st.selectbox("Disciplina", st.session_state.disciplinas_cadastradas)
+                # Professores autorizados para essa disciplina
+                profs_da_disc = [p["Nome"] for p in profs_autorizados if p["Disciplina"] == disc_escolhida]
+                if len(profs_da_disc) > 0:
+                    prof_resp = st.selectbox("Professor Responsável", profs_da_disc)
+                else:
+                    prof_resp = "Nenhum professor autorizado para esta disciplina"
+                    st.warning(f"Nenhum professor autorizado para {disc_escolhida}.")
+
+            with col_n2:
+                n1 = st.number_input("Nota 1 (0 a 10)", min_value=0.0, max_value=10.0, step=0.1)
+                n2 = st.number_input("Nota 2 (0 a 10)", min_value=0.0, max_value=10.0, step=0.1)
+                n3 = st.number_input("Nota 3 (0 a 10)", min_value=0.0, max_value=10.0, step=0.1)
+
+            salvar_notas_btn = st.form_submit_button("Salvar Notas do Aluno")
+
+            if salvar_notas_btn:
+                if aluno_escolhido and prof_resp != "Nenhum professor autorizado para esta disciplina":
+                    # Verificar se já existe lançamento para este aluno nessa disciplina
+                    registros_existentes = st.session_state.dados_escolares
+                    atualizado = False
+                    for reg in registros_existentes:
+                        if reg["Turma"] == t_escolhida and reg["Nome"] == aluno_escolhido and reg["Disciplina"] == disc_escolhida:
+                            reg["Nota1"] = n1
+                            reg["Nota2"] = n2
+                            reg["Nota3"] = n3
+                            reg["Professor"] = prof_resp
+                            atualizado = True
+                            break
+                    
+                    if not atualizado:
+                        st.session_state.dados_escolares.append({
+                            "Turma": t_escolhida,
+                            "Disciplina": disc_escolhida,
+                            "Professor": prof_resp,
+                            "Nome": aluno_escolhido,
+                            "Nota1": n1,
+                            "Nota2": n2,
+                            "Nota3": n3
+                        })
+                    st.success(f"Notas de {aluno_escolhido} salvas com sucesso em {disc_escolhida}!")
+                else:
+                    st.error("Verifique se o aluno e o professor foram selecionados corretamente.")
+
+
+# --- ABA 5: CHAMADA & FREQUÊNCIA (2027) ---
+with aba5:
+    st.header("📅 Diário de Classe - Chamada e Frequência (2027)")
+    st.markdown("Informe o **dia da aula**, o **número/nome da aula** (ex: Aula 1, Aula 2) e registre a presença ou falta dos alunos.")
+
+    if len(st.session_state.turmas_cadastradas) == 0 or len(st.session_state.alunos_cadastrados) == 0:
+        st.warning("⚠️ Cadastre turmas e alunos para realizar a chamada.")
+    else:
+        col_ch1, col_ch2, col_ch3 = st.columns(3)
+        with col_ch1:
+            turma_chamada = st.selectbox("Turma", st.session_state.turmas_cadastradas, key="ch_turma")
+        with col_ch2:
+            data_aula = st.date_input("Data da Aula (2027)", value=date(2027, 2, 1))
+        with col_ch3:
+            nome_aula = st.text_input("Identificação da Aula", value="Aula 1")
+
+        alunos_turma_ch = [a["Nome"] for a in st.session_state.alunos_cadastrados if a["Turma"] == turma_chamada]
+
+        if len(alunos_turma_ch) > 0:
+            st.subheader(f"Chamada - {turma_chamada} | Data: {data_aula.strftime('%d/%m/%Y')} | {nome_aula}")
+            with st.form("form_chamada"):
+                status_presenca = {}
+                for al in alunos_turma_ch:
+                    c_a1, c_a2 = st.columns([3, 2])
+                    c_a1.write(f"👤 {al}")
+                    status_presenca[al] = c_a2.radio("Status", ["Presente", "Falta"], key=f"st_{al}_{data_aula}_{nome_aula}", horizontal=True)
+
+                if st.form_submit_button("💾 Salvar Chamada"):
+                    for al, st_val in status_presenca.items():
+                        st.session_state.registro_chamada.append({
+                            "Data": str(data_aula),
+                            "Aula": nome_aula,
+                            "Turma": turma_chamada,
+                            "Nome": al,
+                            "Status": st_val
+                        })
+                    st.success("Chamada registrada com sucesso!")
+        else:
+            st.info("Nenhum aluno matriculado nesta turma.")
 
         st.markdown("---")
-        st.subheader("📊 Histórico de Chamadas")
+        st.subheader("📊 Histórico de Frequência Registrada")
         if len(st.session_state.registro_chamada) > 0:
-            df_chamada = pd.DataFrame(st.session_state.registro_chamada)
-            st.dataframe(df_chamada[df_chamada["Turma"] == turma_chamada], use_container_width=True)
-    else:
-        st.warning("Nenhuma turma cadastrada.")
+            df_ch = pd.DataFrame(st.session_state.registro_chamada)
+            st.dataframe(df_ch[df_ch["Turma"] == turma_chamada], use_container_width=True)
 
 
-# --- ABA 3: RELATÓRIO E BOLETIM PDF ---
-with aba3:
-    st.header("📄 Relatório de Desempenho e Emissão de Boletim em PDF")
-    
+# --- ABA 6: RELATÓRIOS E BOLETIM EM PDF ---
+with aba6:
+    st.header("📄 Relatório Geral de Desempenho e Boletim em PDF")
+
     if len(st.session_state.dados_escolares) > 0:
-        df = pd.DataFrame(st.session_state.dados_escolares)
-        df["Média"] = ((df["Nota1"] + df["Nota2"] + df["Nota3"]) / 3).round(2)
-        
+        df_geral = pd.DataFrame(st.session_state.dados_escolares)
+        df_geral["Média"] = ((df_geral["Nota1"] + df_geral["Nota2"] + df_geral["Nota3"]) / 3).round(2)
+
         def definir_situacao(media):
             if media >= 7.0:
                 return "✅ Aprovado"
@@ -223,191 +402,71 @@ with aba3:
                 return "⚠️ Recuperação"
             else:
                 return "❌ Reprovado"
-                
-        df["Situação"] = df["Média"].apply(definir_situacao)
 
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            filtro_turma = st.selectbox("Filtrar Tabela por Turma:", ["Todas as Turmas"] + list(st.session_state.turmas_cadastradas))
-        with col_f2:
-            filtro_disc = st.selectbox("Filtrar Tabela por Disciplina:", ["Todas as Disciplinas"] + list(st.session_state.disciplinas_cadastradas))
+        df_geral["Situação"] = df_geral["Média"].apply(definir_situacao)
+
+        filtro_t = st.selectbox("Filtrar por Turma:", ["Todas as Turmas"] + list(st.session_state.turmas_cadastradas), key="filtro_t_rel")
+        df_ex = df_geral if filtro_t == "Todas as Turmas" else df_geral[df_geral["Turma"] == filtro_t]
         
-        df_filtrado = df.copy()
-        if filtro_turma != "Todas as Turmas":
-            df_filtrado = df_filtrado[df_filtrado["Turma"] == filtro_turma]
-        if filtro_disc != "Todas as Disciplinas":
-            df_filtrado = df_filtrado[df_filtrado["Disciplina"] == filtro_disc]
-            
-        st.dataframe(df_filtrado, use_container_width=True)
+        st.dataframe(df_ex, use_container_width=True)
 
         st.markdown("---")
-        st.subheader("📥 Gerar e Baixar Boletim Individual (PDF)")
-        
-        todos_alunos = sorted(list(set(df["Nome"].tolist())))
-        aluno_boletim = st.selectbox("Selecione o Aluno para Emitir o Boletim:", todos_alunos)
-        
-        if aluno_boletim:
-            df_aluno = df[df["Nome"] == aluno_boletim]
-            turma_aluno = df_aluno["Turma"].iloc[0]
-            
-            df_chamada_all = pd.DataFrame(st.session_state.registro_chamada) if len(st.session_state.registro_chamada) > 0 else pd.DataFrame(columns=["Nome", "Status"])
-            faltas_totais = len(df_chamada_all[(df_chamada_all["Nome"] == aluno_boletim) & (df_chamada_all["Status"] == "Falta")])
-            
-            pdf_bytes = gerar_boletim_pdf(aluno_boletim, turma_aluno, df_aluno, faltas_totais)
-            
+        st.subheader("📥 Emitir Boletim Escolar Individual (PDF)")
+        lista_todos_alunos = sorted(list(set(df_geral["Nome"].tolist())))
+        aluno_escolhido_bol = st.selectbox("Selecione o Aluno", lista_todos_alunos)
+
+        if aluno_escolhido_bol:
+            df_al = df_geral[df_geral["Nome"] == aluno_escolhido_bol]
+            t_al = df_al["Turma"].iloc[0]
+
+            df_ch_all = pd.DataFrame(st.session_state.registro_chamada) if len(st.session_state.registro_chamada) > 0 else pd.DataFrame(columns=["Nome", "Status"])
+            total_faltas = len(df_ch_all[(df_ch_all["Nome"] == aluno_escolhido_bol) & (df_ch_all["Status"] == "Falta")]) if not df_ch_all.empty else 0
+
+            pdf_bytes = gerar_boletim_pdf(aluno_escolhido_bol, t_al, df_al, total_faltas)
+
             st.download_button(
-                label=f"📄 Baixar Boletim em PDF ({aluno_boletim})",
+                label=f"📄 Baixar Boletim em PDF ({aluno_escolhido_bol})",
                 data=pdf_bytes,
-                file_name=f"Boletim_2027_{aluno_boletim.replace(' ', '_')}.pdf",
+                file_name=f"Boletim_2027_{aluno_escolhido_bol.replace(' ', '_')}.pdf",
                 mime="application/pdf"
             )
     else:
-        st.info("Nenhum dado cadastrado.")
+        st.info("Nenhum lançamento de notas efetuado ainda.")
 
 
-# --- ABA 4: EDITAR OU EXCLUIR REGISTROS ---
-with aba4:
-    st.header("✏️ Editar Notas ou Excluir Registros de Alunos")
-    
-    if len(st.session_state.dados_escolares) > 0:
-        lista_nomes = [f"{item['Nome']} - {item['Turma']} ({item['Disciplina']})" for item in st.session_state.dados_escolares]
-        aluno_selecionado_str = st.selectbox("Selecione o Registro", lista_nomes)
+# --- ABA 7: ACESSO RESTRITO DO PROFESSOR ---
+with aba7:
+    st.header("🔒 Painel de Acesso Restrito por Professor e Disciplina")
+    st.markdown("O professor seleciona seu nome e disciplina para visualizar apenas as notas e turmas da sua alçada.")
+
+    profs_autorizados_7 = [p for p in st.session_state.professores_cadastrados if p["Status"] == "Autorizado"]
+
+    if len(profs_autorizados_7) > 0:
+        nomes_profs = sorted(list(set([p["Nome"] for p in profs_autorizados_7])))
+        prof_login = st.selectbox("Selecione seu Nome (Professor)", nomes_profsp if 'profs_profsp' in locals() else nomes_profs)
         
-        indice_selecionado = lista_nomes.index(aluno_selecionado_str)
-        aluno_atual = st.session_state.dados_escolares[indice_selecionado]
-        
-        with st.form("form_edicao"):
-            novo_nome = st.text_input("Alterar Nome do Aluno", value=aluno_atual["Nome"])
-            nova_n1 = st.number_input("Nota 1", min_value=0.0, max_value=10.0, step=0.1, value=float(aluno_atual["Nota1"]))
-            nova_n2 = st.number_input("Nota 2", min_value=0.0, max_value=10.0, step=0.1, value=float(aluno_atual["Nota2"]))
-            nova_n3 = st.number_input("Nota 3", min_value=0.0, max_value=10.0, step=0.1, value=float(aluno_atual["Nota3"]))
-            
-            if st.form_submit_button("Salvar Alterações"):
-                st.session_state.dados_escolares[indice_selecionado]["Nome"] = novo_nome.strip()
-                st.session_state.dados_escolares[indice_selecionado]["Nota1"] = nova_n1
-                st.session_state.dados_escolares[indice_selecionado]["Nota2"] = nova_n2
-                st.session_state.dados_escolares[indice_selecionado]["Nota3"] = nova_n3
-                st.success("Atualizado com sucesso!")
-                st.rerun()
+        # Disciplinas autorizadas para este professor
+        discs_prof = [p["Disciplina"] for p in profs_autorizados_7 if p["Nome"] == prof_login]
+        disc_login = st.selectbox("Selecione sua Disciplina", discs_prof)
 
-        if st.button("❌ Excluir Este Registro", type="primary"):
-            st.session_state.dados_escolares.pop(indice_selecionado)
-            st.success("Removido!")
-            st.rerun()
-    else:
-        st.info("Não há registros para editar.")
+        st.markdown(f"### 🎯 Visão Exclusiva: {prof_login} - Disciplina: {disc_login}")
 
+        # Filtrar dados escolares apenas desta disciplina e professor
+        if len(st.session_state.dados_escolares) > 0:
+            df_all = pd.DataFrame(st.session_state.dados_escolares)
+            df_prof_filtrado = df_all[(df_all["Disciplina"] == disc_login) & (df_all["Professor"] == prof_login)]
 
-# --- ABA 5: CADASTRO DE PROFESSOR (SOLICITAÇÃO DE ACESSO) ---
-with aba5:
-    st.header("👨‍🏫 Solicitação de Cadastro de Professor")
-    st.markdown("Cadastre seu nome para solicitar acesso ao sistema. O acesso passará por autorização da coordenação.")
-
-    with st.form("form_solicitacao_prof"):
-        nome_novo_prof = st.text_input("Nome Completo do Professor (ex: Prof. Marcos Silva)")
-        solicitar_btn = st.form_submit_button("Solicitar Cadastro")
-
-        if solicitar_btn:
-            if nome_novo_prof.strip():
-                # Verificar se já existe
-                nomes_existentes = [p["Nome"] for p in st.session_state.professores_cadastrados]
-                if nome_novo_prof.strip() not in nomes_existentes:
-                    st.session_state.professores_cadastrados.append({
-                        "Nome": nome_novo_prof.strip(),
-                        "Status": "Pendente"
-                    })
-                    st.success(f"Solicitação enviada com sucesso para '{nome_novo_prof.strip()}'! Aguarde a autorização na aba de Gerenciamento.")
-                else:
-                    st.error("Este nome já está cadastrado ou pendente no sistema.")
+            if not df_prof_filtrado.empty:
+                df_prof_filtrado["Média"] = ((df_prof_filtrado["Nota1"] + df_prof_filtrado["Nota2"] + df_prof_filtrado["Nota3"]) / 3).round(2)
+                st.dataframe(df_prof_filtrado, use_container_width=True)
             else:
-                st.error("Por favor, digite um nome válido.")
-
-
-# --- ABA 6: GERENCIAMENTO GERAL E AUTORIZAÇÃO DE PROFESSORES ---
-with aba6:
-    st.header("⚙️ Gerenciamento e Autorização de Acessos")
-    
-    # Seção de Autorização de Professores
-    st.subheader("🛡️ Autorização de Professores (Pendentes)")
-    pendentes = [p for p in st.session_state.professores_cadastrados if p["Status"] == "Pendente"]
-    
-    if len(pendentes) > 0:
-        for p in pendentes:
-            col_p1, col_p2, col_p3 = st.columns([3, 1, 1])
-            with col_p1:
-                st.write(f"⏳ **{p['Nome']}** (Aguardando Autorização)")
-            with col_p2:
-                if st.button("✅ Autorizar", key=f"auth_{p['Nome']}"):
-                    for item in st.session_state.professores_cadastrados:
-                        if item["Nome"] == p["Nome"]:
-                            item["Status"] = "Autorizado"
-                    st.success(f"Professor {p['Nome']} autorizado com sucesso!")
-                    st.rerun()
-            with col_p3:
-                if st.button("❌ Rejeitar", key=f"rej_{p['Nome']}"):
-                    st.session_state.professores_cadastrados = [item for item in st.session_state.professores_cadastrados if item["Nome"] != p["Nome"]]
-                    st.success(f"Solicitação de {p['Nome']} rejeitada.")
-                    st.rerun()
+                st.info("Nenhum lançamento de notas encontrado para a sua disciplina.")
+        else:
+            st.info("Nenhum dado cadastrado no sistema.")
     else:
-        st.info("Nenhuma solicitação de professor pendente no momento.")
-
-    st.markdown("---")
-    
-    # Lista de Professores Atuais e Remoção
-    st.subheader("👥 Professores Cadastrados no Sistema")
-    for p in list(st.session_state.professores_cadastrados):
-        col_cad1, col_cad2 = st.columns([3, 1])
-        with col_cad1:
-            badge = "🟢 Autorizado" if p["Status"] == "Autorizado" else "🟡 Pendente"
-            st.write(f"- {p['Nome']} ({badge})")
-        with col_cad2:
-            if st.button("Remover", key=f"del_prof_geral_{p['Nome']}"):
-                st.session_state.professores_cadastrados = [item for item in st.session_state.professores_cadastrados if item["Nome"] != p["Nome"]]
-                st.success(f"Professor {p['Nome']} removido.")
-                st.rerun()
-
-    st.markdown("---")
-    col_g1, col_g2 = st.columns(2)
-    
-    with col_g1:
-        st.subheader("🏫 Gerenciar Turmas / Séries")
-        nova_turma = st.text_input("Nova Série/Turma (ex: 6º Ano B)")
-        if st.button("Adicionar Turma"):
-            if nova_turma.strip() and nova_turma.strip() not in st.session_state.turmas_cadastradas:
-                st.session_state.turmas_cadastradas.append(nova_turma.strip())
-                st.rerun()
-        
-        for t in list(st.session_state.turmas_cadastradas):
-            c1, c2 = st.columns([3, 1])
-            c1.write(f"- {t}")
-            if c2.button("Remover", key=f"del_t_{t}"):
-                st.session_state.turmas_cadastradas.remove(t)
-                st.rerun()
-
-    with col_g2:
-        st.subheader("📚 Gerenciar Disciplinas")
-        nova_disc = st.text_input("Nova Disciplina (ex: Filosofia)")
-        if st.button("Adicionar Disciplina"):
-            if nova_disc.strip() and nova_disc.strip() not in st.session_state.disciplinas_cadastradas:
-                st.session_state.disciplinas_cadastradas.append(nova_disc.strip())
-                st.rerun()
-        
-        for d in list(st.session_state.disciplinas_cadastradas):
-            c1, c2 = st.columns([3, 1])
-            c1.write(f"- {d}")
-            if c2.button("Remover", key=f"del_d_{d}"):
-                st.session_state.disciplinas_cadastradas.remove(d)
-                st.rerun()
-
-    st.markdown("---")
-    st.subheader("⚠️ Zona de Perigo (Reset Total)")
-    if st.button("🗑️ Limpar Todos os Dados do Sistema", type="primary"):
-        st.session_state.dados_escolares = []
-        st.session_state.registro_chamada = []
-        st.success("Dados limpos!")
-        st.rerun()
+        st.warning("Não há professores autorizados no sistema no momento.")
 
 # Rodapé
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: gray;'>Sistema Escolar Automatizado 2027 📚</p>", unsafe_allow_html=True)
-    
+st.markdown("<p style='text-align: center; color: gray;'>Sistema Escolar Automatizado 2027 📚</p>", unsafe_allow_html=True)   
+       
