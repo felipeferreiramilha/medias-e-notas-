@@ -1,6 +1,3 @@
-streamlit
-pandas
-reportlab
 import streamlit as st
 import pandas as pd
 from datetime import date
@@ -30,16 +27,16 @@ if "disciplinas_cadastradas" not in st.session_state:
     st.session_state.disciplinas_cadastradas = []
 
 if "professores_cadastrados" not in st.session_state:
-    st.session_state.professores_cadastrados = []  # Estrutura: {"Nome": ..., "Disciplina": ..., "Status": ...}
+    st.session_state.professores_cadastrados = []
 
 if "alunos_cadastrados" not in st.session_state:
-    st.session_state.alunos_cadastrados = []  # Estrutura: {"Nome": ..., "Turma": ...}
+    st.session_state.alunos_cadastrados = []
 
 if "dados_escolares" not in st.session_state:
-    st.session_state.dados_escolares = []  # Estrutura: {"Turma": ..., "Disciplina": ..., "Professor": ..., "Nome": ..., "Nota1": ..., "Nota2": ..., "Nota3": ...}
+    st.session_state.dados_escolares = []
 
 if "registro_chamada" not in st.session_state:
-    st.session_state.registro_chamada = []  # Estrutura: {"Data": ..., "Aula": ..., "Turma": ..., "Disciplina": ..., "Nome": ..., "Status": ...}
+    st.session_state.registro_chamada = []
 
 
 # --- FUNÇÃO PARA GERAR BOLETIM EM PDF ---
@@ -190,7 +187,6 @@ with aba2:
 
             if solicitar_prof:
                 if nome_prof.strip():
-                    # Verificar se já existe
                     ja_existe = any(p["Nome"] == nome_prof.strip() and p["Disciplina"] == disc_prof for p in st.session_state.professores_cadastrados)
                     if not ja_existe:
                         st.session_state.professores_cadastrados.append({
@@ -287,7 +283,6 @@ with aba4:
             col_n1, col_n2 = st.columns(2)
             with col_n1:
                 t_escolhida = st.selectbox("Turma", st.session_state.turmas_cadastradas)
-                # Filtrar alunos da turma escolhida
                 alunos_da_turma = [a["Nome"] for a in st.session_state.alunos_cadastrados if a["Turma"] == t_escolhida]
                 if len(alunos_da_turma) > 0:
                     aluno_escolhido = st.selectbox("Aluno", alunos_da_turma)
@@ -296,7 +291,6 @@ with aba4:
                     st.warning("Não há alunos nesta turma.")
 
                 disc_escolhida = st.selectbox("Disciplina", st.session_state.disciplinas_cadastradas)
-                # Professores autorizados para essa disciplina
                 profs_da_disc = [p["Nome"] for p in profs_autorizados if p["Disciplina"] == disc_escolhida]
                 if len(profs_da_disc) > 0:
                     prof_resp = st.selectbox("Professor Responsável", profs_da_disc)
@@ -313,7 +307,6 @@ with aba4:
 
             if salvar_notas_btn:
                 if aluno_escolhido and prof_resp != "Nenhum professor autorizado para esta disciplina":
-                    # Verificar se já existe lançamento para este aluno nessa disciplina
                     registros_existentes = st.session_state.dados_escolares
                     atualizado = False
                     for reg in registros_existentes:
@@ -443,15 +436,13 @@ with aba7:
 
     if len(profs_autorizados_7) > 0:
         nomes_profs = sorted(list(set([p["Nome"] for p in profs_autorizados_7])))
-        prof_login = st.selectbox("Selecione seu Nome (Professor)", nomes_profsp if 'profs_profsp' in locals() else nomes_profs)
+        prof_login = st.selectbox("Selecione seu Nome (Professor)", nomes_profs)
         
-        # Disciplinas autorizadas para este professor
         discs_prof = [p["Disciplina"] for p in profs_autorizados_7 if p["Nome"] == prof_login]
         disc_login = st.selectbox("Selecione sua Disciplina", discs_prof)
 
         st.markdown(f"### 🎯 Visão Exclusiva: {prof_login} - Disciplina: {disc_login}")
 
-        # Filtrar dados escolares apenas desta disciplina e professor
         if len(st.session_state.dados_escolares) > 0:
             df_all = pd.DataFrame(st.session_state.dados_escolares)
             df_prof_filtrado = df_all[(df_all["Disciplina"] == disc_login) & (df_all["Professor"] == prof_login)]
@@ -468,5 +459,5 @@ with aba7:
 
 # Rodapé
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: gray;'>Sistema Escolar Automatizado 2027 📚</p>", unsafe_allow_html=True)   
+st.markdown("<p style='text-align: center; color: gray;'>Sistema Escolar Automatizado 2027 📚</p>", unsafe_allow_html=True)
        
