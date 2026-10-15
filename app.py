@@ -1,18 +1,13 @@
-streamlit
-pandas
-reportlab
 import streamlit as st
 import pandas as pd
 from datetime import date
 import io
 
-# Importação da biblioteca ReportLab para geração de PDFs
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Configuração da página
 st.set_page_config(
     page_title="Sistema de Gestão Escolar 2027",
     page_icon="📚",
@@ -22,7 +17,6 @@ st.set_page_config(
 st.title("📚 Sistema de Gestão Escolar - 2027")
 st.markdown("Gerenciamento escolar completo: Cadastro de turmas, alunos, professores por disciplina, controle de chamadas, notas e boletins em PDF.")
 
-# --- INICIALIZAÇÃO DE DADOS ZERADOS NA SESSÃO ---
 if "turmas_cadastradas" not in st.session_state:
     st.session_state.turmas_cadastradas = []
 
@@ -41,8 +35,6 @@ if "dados_escolares" not in st.session_state:
 if "registro_chamada" not in st.session_state:
     st.session_state.registro_chamada = []
 
-
-# --- FUNÇÃO PARA GERAR BOLETIM EM PDF ---
 def gerar_boletim_pdf(nome_aluno, turma_aluno, df_aluno_notas, faltas_aluno):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -98,8 +90,6 @@ def gerar_boletim_pdf(nome_aluno, turma_aluno, df_aluno_notas, faltas_aluno):
     buffer.seek(0)
     return buffer
 
-
-# --- ABAS DE NAVEGAÇÃO DO SISTEMA ---
 aba1, aba2, aba3, aba4, aba5, aba6, aba7 = st.tabs([
     "⚙️ Configurações / Cadastros", 
     "👨‍🏫 Solicitação Professor", 
@@ -110,8 +100,6 @@ aba1, aba2, aba3, aba4, aba5, aba6, aba7 = st.tabs([
     "🔒 Acesso Restrito do Professor"
 ])
 
-
-# --- ABA 1: CONFIGURAÇÕES / CADASTROS GERAIS ---
 with aba1:
     st.header("⚙️ Cadastro de Turmas e Disciplinas")
     st.markdown("Cadastre as turmas (séries) e as disciplinas iniciais do ano letivo de 2027.")
@@ -174,8 +162,6 @@ with aba1:
         st.success("Sistema limpo com sucesso!")
         st.rerun()
 
-
-# --- ABA 2: SOLICITAÇÃO DE CADASTRO DE PROFESSOR ---
 with aba2:
     st.header("👨‍🏫 Cadastro e Vinculação de Professor por Disciplina")
     st.markdown("O professor se cadastra informando seu nome e qual disciplina irá lecionar. O acesso só é liberado após a autorização.")
@@ -239,8 +225,6 @@ with aba2:
             ]
             st.rerun()
 
-
-# --- ABA 3: MATRÍCULA DE ALUNOS ---
 with aba3:
     st.header("📝 Cadastro / Matrícula de Alunos")
     st.markdown("Cadastre os alunos e vincule-os diretamente às turmas cadastradas.")
@@ -271,8 +255,6 @@ with aba3:
     else:
         st.info("Nenhum aluno matriculado ainda.")
 
-
-# --- ABA 4: LANÇAMENTO DE NOTAS (3 NOTAS) ---
 with aba4:
     st.header("📊 Lançamento de Notas (3 Avaliações)")
     st.markdown("Selecione a Turma, a Disciplina, o Professor Autorizado e lance as três notas do aluno.")
@@ -335,8 +317,6 @@ with aba4:
                 else:
                     st.error("Verifique se o aluno e o professor foram selecionados corretamente.")
 
-
-# --- ABA 5: CHAMADA & FREQUÊNCIA (2027) ---
 with aba5:
     st.header("📅 Diário de Classe - Chamada e Frequência (2027)")
     st.markdown("Informe o **dia da aula**, o **número/nome da aula** (ex: Aula 1, Aula 2) e registre a presença ou falta dos alunos.")
@@ -382,8 +362,6 @@ with aba5:
             df_ch = pd.DataFrame(st.session_state.registro_chamada)
             st.dataframe(df_ch[df_ch["Turma"] == turma_chamada], use_container_width=True)
 
-
-# --- ABA 6: RELATÓRIOS E BOLETIM EM PDF ---
 with aba6:
     st.header("📄 Relatório Geral de Desempenho e Boletim em PDF")
 
@@ -429,8 +407,6 @@ with aba6:
     else:
         st.info("Nenhum lançamento de notas efetuado ainda.")
 
-
-# --- ABA 7: ACESSO RESTRITO DO PROFESSOR ---
 with aba7:
     st.header("🔒 Painel de Acesso Restrito por Professor e Disciplina")
     st.markdown("O professor seleciona seu nome e disciplina para visualizar apenas as notas e turmas da sua alçada.")
@@ -460,7 +436,7 @@ with aba7:
     else:
         st.warning("Não há professores autorizados no sistema no momento.")
 
-# Rodapé
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: gray;'>Sistema Escolar Automatizado 2027 📚</p>", unsafe_allow_html=True)
-       
+
+        
